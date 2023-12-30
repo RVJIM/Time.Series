@@ -34,7 +34,7 @@ log_equities_m = np.log(equities_m.iloc[:, 1:])
 log_equities_m.to_excel(os.path.join('Monthly', 'Return Logarithmic.xlsx'))
 
 # Create Lineplot
-'''def create_lineplot(data, time, folder_name):
+def create_lineplot(data, time, folder_name):
     lineplot_folder = os.path.join(folder_name, 'LinePlot')
     os.makedirs(lineplot_folder, exist_ok=True)
     
@@ -48,7 +48,7 @@ log_equities_m.to_excel(os.path.join('Monthly', 'Return Logarithmic.xlsx'))
  
 create_lineplot(log_equities_d, equities_d["Date"], 'Daily')
 create_lineplot(log_equities_m, equities_m["Date"], 'Monthly')
-create_lineplot(economics.iloc[:, 1:], economics["data"], 'Economics')'''
+create_lineplot(economics.iloc[:, 1:], economics["data"], 'Economics')
 
 # Calculate percentage returns
 r_d = 100 * (log_equities_d - log_equities_d.shift(1))
@@ -59,7 +59,7 @@ r_e = 100 * ((economics.iloc[:, 1:] - economics.iloc[:, 1:].shift(1)) / economic
 r_e[1:].to_excel(os.path.join('Economics', 'Percentage Return.xlsx'))
 
 # Generate descriptive statistics, skewness, kurtosis and save results to Excel Files
-'''def save_return_description(data, labels, folder_name, filename):
+def save_return_description(data, labels, folder_name, filename):
     sd = os.path.join(folder_name, 'Statistics Description')
     os.makedirs(sd, exist_ok=True)
     
@@ -92,7 +92,7 @@ os.makedirs('Jarque Bera', exist_ok=True)
 financial_jb = pd.concat([jarque_bera_r_d, jarque_bera_r_m], axis=1, keys=['Daily', 'Monthly'])
 financial_jb.to_excel(os.path.join('Jarque Bera','Financial.xlsx'))
 jarque_bera_r_e.to_excel(os.path.join('Jarque Bera', 'Economics.xlsx'))
-'''
+
 # Returns Hist
 def hist_plot(data, labels, bins, folder_name):
     hist_folder = os.path.join(folder_name, 'HistPlot - Returns')
@@ -111,7 +111,7 @@ hist_plot(r_m, labels_equity, 25, 'Monthly')
 hist_plot(r_e, labels_economics, 25, 'Economics')
 
 # Define a function to plot returns
-'''def plot_returns(time, returns, folder_name):
+def plot_returns(time, returns, folder_name):
     returns_folder = os.path.join(folder_name, 'LinePlot - Returns')
     os.makedirs(returns_folder, exist_ok=True)
 
@@ -129,9 +129,9 @@ hist_plot(r_e, labels_economics, 25, 'Economics')
 plot_returns(equities_d["Date"], r_d,'Daily')
 plot_returns(equities_m["Date"], r_m, 'Monthly')
 plot_returns(economics["data"], r_e, 'Economics')
-'''
+
 # Variables with reduced time
-'''r_m_short=r_m.iloc[:108].copy()
+r_m_short=r_m.iloc[:108].copy()
 p_m_short=log_equities_m.iloc[:108].copy()
 t_m_short = t_m[:108] #removed last 2 years
 
@@ -221,4 +221,4 @@ adf_result_m_first, _ = perform_adf_test(r_m_short[1:], p_m_unit_root_BIC_df, p_
                                          0.05, 12, 'Monthly', type='First Difference')
 
 adf_result_e_first, _ = perform_adf_test(r_e_short[1:], p_e_unit_root_BIC_df, p_e_unit_root, 
-                                         0.05, 12, 'Economics', type='First Difference')'''
+                                         0.05, 12, 'Economics', type='First Difference')
