@@ -292,4 +292,4 @@ estimate_arma_model(r_e_short[1:], adf_result_e_first, 20, 1, 1, 'Economics', 'F
 estimate_arma_model(p_d_short, adf_result_d, 20, 1, 1, 'Daily', 'Log-Prices')
 estimate_arma_model(p_m_short, adf_result_m, 20, 1, 1, 'Monthly', 'Log-Prices')
 estimate_arma_model(p_e_short, adf_result_e, 20, 1, 1, 'Economics', 'Log-Prices')
-estimate_arma_model(p_d_short, adf_result_d, 20, 1, 1, 'Daily', 'First Difference')
+
