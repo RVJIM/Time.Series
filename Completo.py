@@ -37,7 +37,7 @@ log_equities_m = np.log(equities_m.iloc[:, 1:])
 log_equities_m.to_excel(os.path.join('Monthly', 'Return Logarithmic.xlsx'))
 
 # Create Lineplot
-def create_lineplot(data, time, folder_name):
+'''def create_lineplot(data, time, folder_name):
     lineplot_folder = os.path.join(folder_name, 'LinePlot')
     os.makedirs(lineplot_folder, exist_ok=True)
     
@@ -52,7 +52,7 @@ def create_lineplot(data, time, folder_name):
 create_lineplot(log_equities_d, equities_d["Date"], 'Daily')
 create_lineplot(log_equities_m, equities_m["Date"], 'Monthly')
 create_lineplot(economics.iloc[:, 1:], economics["data"], 'Economics') 
-
+'''
 # Calculate percentage returns
 r_d = 100 * (log_equities_d - log_equities_d.shift(1))
 r_d[1:].to_excel(os.path.join('Daily', 'Percentage Return.xlsx'))
@@ -62,7 +62,7 @@ r_e = 100 * ((economics.iloc[:, 1:] - economics.iloc[:, 1:].shift(1)) / economic
 r_e[1:].to_excel(os.path.join('Economics', 'Percentage Return.xlsx'))
 
 # Generate descriptive statistics, skewness, kurtosis and save results to Excel Files
-def save_return_description(data, labels, folder_name, filename):
+'''def save_return_description(data, labels, folder_name, filename):
     sd = os.path.join(folder_name, 'Statistics Description')
     os.makedirs(sd, exist_ok=True)
     
@@ -75,9 +75,9 @@ def save_return_description(data, labels, folder_name, filename):
 save_return_description(r_d, labels_equity, 'Daily', 'daily_return_description.xlsx')
 save_return_description(r_m, labels_equity, 'Monthly', 'monthly_return_description.xlsx')
 save_return_description(r_e, labels_economics, 'Economics', 'economics_return_description.xlsx')
-
+'''
 # Calculate Jarque-Bera test statistics and p-values
-def calculate_jarque_bera(data):
+'''def calculate_jarque_bera(data):
     array = []
     for equity in data.columns:
         ret = sp.stats.jarque_bera(data[equity][1:])
@@ -94,10 +94,10 @@ os.makedirs('Jarque Bera', exist_ok=True)
 # Merge and save results to Excel files
 financial_jb = pd.concat([jarque_bera_r_d, jarque_bera_r_m], axis=1, keys=['Daily', 'Monthly'])
 financial_jb.to_excel(os.path.join('Jarque Bera','Financial.xlsx'))
-jarque_bera_r_e.to_excel(os.path.join('Jarque Bera', 'Economics.xlsx'))
+jarque_bera_r_e.to_excel(os.path.join('Jarque Bera', 'Economics.xlsx'))'''
 
 # Returns Hist
-def hist_plot(data, labels, bins, folder_name):
+'''def hist_plot(data, labels, bins, folder_name):
     hist_folder = os.path.join(folder_name, 'HistPlot - Returns')
     os.makedirs(hist_folder, exist_ok=True)
 
@@ -111,10 +111,10 @@ def hist_plot(data, labels, bins, folder_name):
 
 hist_plot(r_d, labels_equity, 50, 'Daily')
 hist_plot(r_m, labels_equity, 25, 'Monthly')
-hist_plot(r_e, labels_economics, 25, 'Economics') 
+hist_plot(r_e, labels_economics, 25, 'Economics') '''
 
 # Define a function to plot returns
-def plot_returns(time, returns, folder_name):
+'''def plot_returns(time, returns, folder_name):
     returns_folder = os.path.join(folder_name, 'LinePlot - Returns')
     os.makedirs(returns_folder, exist_ok=True)
 
@@ -131,7 +131,7 @@ def plot_returns(time, returns, folder_name):
 # Plot returns for equities_d, equities_m, and economics
 plot_returns(equities_d["Date"], r_d,'Daily')
 plot_returns(equities_m["Date"], r_m, 'Monthly')
-plot_returns(economics["data"], r_e, 'Economics')
+plot_returns(economics["data"], r_e, 'Economics')'''
 
 # Variables with reduced time
 r_m_short = r_m.iloc[:108].copy()
@@ -235,6 +235,7 @@ def estimate_arma_model(data, df_check, lags_acf_pacf, ar, ma, folder_name, type
     os.makedirs(lb_folder, exist_ok=True)
 
     labels_check = df_check[df_check['check'] == 'Stationarity'].index.tolist()
+    labels_not = df_check[df_check['check'] != 'Stationarity'].index.tolist()
     all_results =[]
 
     for equity in labels_check:
@@ -289,19 +290,18 @@ def estimate_arma_model(data, df_check, lags_acf_pacf, ar, ma, folder_name, type
         lb_residuals.to_excel(os.path.join(lb_folder, f'{equity}.xlsx'))
         
         all_results.append(results)
-    return all_results, labels_check
+    return all_results, labels_check, labels_not
 
-model_results_d_fd, labels_check_d_fd = estimate_arma_model(r_d_short[1:], adf_result_d_first, 20, 1, 1, 'Daily', 'First Difference')
-model_results_m_fd, labels_check_m_fd = estimate_arma_model(r_m_short[1:], adf_result_m_first, 20, 1, 1, 'Monthly', 'First Difference')
-model_results_e_fd, labels_check_e_fd = estimate_arma_model(r_e_short[1:], adf_result_e_first, 20, 1, 1, 'Economics', 'First Difference')
-model_results_d_p, labels_check_d_p = estimate_arma_model(p_d_short, adf_result_d, 20, 1, 1, 'Daily', 'Log-Prices')
-model_results_m_p, labels_check_m_p = estimate_arma_model(p_m_short, adf_result_m, 20, 1, 1, 'Monthly', 'Log-Prices')
-model_results_e_p, labels_check_e_p = estimate_arma_model(p_e_short, adf_result_e, 20, 1, 1, 'Economics', 'Log-Prices')
-
+model_results_d_fd, labels_check_d_fd, labels_not_d_fd= estimate_arma_model(r_d_short[1:], adf_result_d_first, 20, 1, 1, 'Daily', 'First Difference')
+model_results_m_fd, labels_check_m_fd, labels_not_m_fd= estimate_arma_model(r_m_short[1:], adf_result_m_first, 20, 1, 1, 'Monthly', 'First Difference')
+model_results_e_fd, labels_check_e_fd, labels_not_e_fd = estimate_arma_model(r_e_short[1:], adf_result_e_first, 20, 1, 1, 'Economics', 'First Difference')
+model_results_d_p, labels_check_d_p, labels_not_d = estimate_arma_model(p_d_short, adf_result_d, 20, 1, 1, 'Daily', 'Log-Prices')
+model_results_m_p, labels_check_m_p, labels_not_m = estimate_arma_model(p_m_short, adf_result_m, 20, 1, 1, 'Monthly', 'Log-Prices')
+model_results_e_p, labels_check_e_p, labels_not_e = estimate_arma_model(p_e_short, adf_result_e, 20, 1, 1, 'Economics', 'Log-Prices')
 
 # Compute Forecast rolling, with return a dictionary with all dataframe of Time, Forecast's value, Lower CI, Upper CI and True Value
-def forecast_time_series(data: pd.DataFrame, labels_check: list, forecast_periods: int, folder_name: str, type: str):
-    forecast_folder = os.path.join(folder_name, 'Forecast', type)
+def forecast_time_series(data: pd.DataFrame, labels_check: list, forecast_periods: int, folder_name: str, type: str, check = 'Stationaritiy'):
+    forecast_folder = os.path.join(folder_name, 'Forecast', check, type)
     os.makedirs(forecast_folder, exist_ok=True)
 
     # Checking if the forecast_periods is valid
@@ -413,3 +413,56 @@ forecast_result_economics = forecast_time_series(P_e[1:], labels_check_e_p, fore
 forecast_result_daily_fd = forecast_time_series(r_d[1:], labels_check_d_fd, forecast_periods_daily, 'Daily', 'Percentage Return')
 forecast_result_monthly_fd = forecast_time_series(r_m[1:], labels_check_m_fd, forecast_periods_monthly, 'Monthly', 'Percentage Return')
 forecast_result_economics_fd = forecast_time_series(r_e[1:], labels_check_e_fd, forecast_periods_monthly, 'Economics', 'Percentage Return')
+
+# Forecast for non-stationarity level
+forecast_result_daily_not = forecast_time_series(log_equities_d, labels_not_d, forecast_periods_daily, 'Daily', 'Log-Price', 'Non-Stationarity')
+forecast_result_monthly_not = forecast_time_series(log_equities_m, labels_not_m, forecast_periods_monthly, 'Monthly', 'Log-Price', 'Non-Stationarity')
+forecast_result_economics_not = forecast_time_series(P_e[1:], labels_not_e, forecast_periods_monthly, 'Economics', 'Price', 'Non-Stationarity')
+
+# Compare forecast with Random Walk
+def compare_forecast_rw(data, forecast_df_not, forecast_periods, seed: int, folder_name: int, type: str, check = 'Non-Stationarity'):
+    forecast_folder = os.path.join(folder_name, 'Forecast', check, type)
+    os.makedirs(forecast_folder, exist_ok=True)
+
+    np.random.seed(seed)
+    forecast = np.zeros([forecast_periods,1])
+
+
+    for equity in forecast_df_not:
+        tot_periods = len(data[equity])
+        random_walk = np.cumsum(np.random.normal(size=tot_periods))
+        diff_random_walk = np.diff(random_walk)
+        data = pd.DataFrame({'Random Walk': random_walk, 'Differenced Random Walk': diff_random_walk})
+
+        model = sm.tsa.ARIMA(data['Random Walk'][:-forecast_periods-1], order=(0,1,0))
+        result = model.fit()
+        forecast[0,0] = result.forecast(steps=1)
+        periods = len(data[equity]) - forecast_periods
+
+        for ii in range(0, forecast_periods):
+            m = periods + ii
+            mod_roll = sm.tsa.ARIMA(random_walk[:m], order=(0,1,0), trend='n')
+            #print(f"m: {m}, data[equity][:m]: {data[equity][:m]}")
+            result_roll = mod_roll.fit()
+            forecast[ii,0] = result_roll.forecast(steps=1)
+
+        t = np.arange(periods, periods+forecast_periods)
+        forecast_rw_df = pd.DataFrame({
+            "Time": t.flatten(),
+            "Forecast": forecast.flatten(),
+            "True Value": random_walk[periods:]
+        })
+
+        plt.plot(forecast_df_not[equity].index, forecast_df_not["Forecast"], 'b--', label=f"Forecast - {equity}")
+        plt.plot(forecast_rw_df.index, forecast_rw_df["Forecast"], 'k-', label="Forecast - Random Walk")
+
+        plt.legend()
+        plt.xlabel("Time")
+        plt.ylabel(type)
+        plt.title(f"{equity} Series Forecast")
+        plt.savefig(os.path.join(forecast_folder, f'Comparing {equity}.png'), dpi=300)
+        plt.close()
+
+forecast_time_series(log_equities_d, forecast_result_daily_not, 123, forecast_periods_daily, 'Daily', 'Log-Price', 'Non-Stationarity')
+forecast_time_series(log_equities_m, forecast_result_monthly_not, 123, forecast_periods_monthly, 'Monthly', 'Log-Price', 'Non-Stationarity')
+forecast_time_series(P_e[1:], forecast_result_economics_not, 123, forecast_periods_monthly, 'Economics', 'Price', 'Non-Stationarity')
