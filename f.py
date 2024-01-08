@@ -5,6 +5,7 @@ import statsmodels.api as sm
 import os
 from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 from statsmodels.stats.diagnostic import acorr_ljungbox
+from statsmodels.tsa.arima.model import ARIMA
 
 def estimate_arma_model(data, df_check, lags_acf_pacf, ar, ma, folder_name, type='Log-Returns'):
     acf_pacf_folder = os.path.join(folder_name, 'ACF - PACF', type)
@@ -66,6 +67,50 @@ def estimate_arma_model(data, df_check, lags_acf_pacf, ar, ma, folder_name, type
         # Save LB in Excel File
         lb_residuals.to_excel(os.path.join(lb_folder, f'{equity}.xlsx'))
         
+
+
+def forecast_time_series(data: pd.DataFrame, model: ARIMA, forecast_periods: int, folder_name):
+    forecast_folder = os.path.join(folder_name, 'Forecast')
+    os.makedirs(forecast_folder, exist_ok=True)
+
+    # Checking if the forecast_periods is valid
+    if forecast_periods < 1:
+        raise ValueError("forecast_periods should be greater than or equal to 1.")
+ 
+    # Creating an empty DataFrame to store the forecasted values, confidence intervals, and true values
+    forecast_df = pd.DataFrame(columns=["Forecast", "Lower CI", "Upper CI", "True Value"])
+    
+    for equity in data:
+        # Rolling procedure for forecasting
+        for i in range(len(equity) - forecast_periods + 1):
+            # Splitting the data into training and testing sets
+            train_equity = equity.iloc[:i + forecast_periods]
+            test_equity = equity.iloc[i + forecast_periods]
+ 
+        # Fitting the model on the training data
+            #model_fit = model.fit(train_equity)
+ 
+        # Forecasting the next period
+            forecast, stderr, conf_int = model[equity].forecast(steps=1)
+ 
+            # Appending the forecasted values, confidence intervals, and true values to the DataFrame
+            forecast_df = forecast_df.append({
+                "Forecast": forecast[0],
+                "Lower CI": conf_int[0][0],
+                "Upper CI": conf_int[0][1],
+                "True Value": test_equity
+            }, ignore_index=True)
+
+            plt.plot(forecast_df.index, forecast_df["Forecast"], label="Forecast")
+            plt.fill_between(forecast_df.index, forecast_df["Lower CI"], forecast_df["Upper CI"], alpha=0.3, label="Confidence Interval")
+            plt.plot(forecast_df.index, forecast_df["True Value"], label="True Value")
+            plt.legend()
+            plt.xlabel("Time")
+            plt.ylabel("Value")
+            plt.title(f"{equity} Series Forecast")
+            plt.savefig(os.path.join(forecast_folder, f'{equity}.xlsx'))
+            plt.close()
+
 
 def forecast():
     # simulate AR (1)

@@ -8,7 +8,8 @@ import os
 from statsmodels.tsa.stattools import adfuller
 from statsmodels.graphics.tsaplots import plot_acf, plot_pacf 
 from statsmodels.stats.diagnostic import acorr_ljungbox
-import f
+from statsmodels.tsa.arima.model import ARIMA
+import fun
 
 # Read data from Excel files
 equities_d = pd.read_excel('equities.xlsx', 'equities_d', index_col=None, na_values=['NA '])
@@ -20,9 +21,9 @@ labels_economics = economics.columns[1:]
 P_e=pd.DataFrame(economics,columns=labels_economics)
 
 # Time
-t_d= equities_d["Date"]
-t_m= equities_m["Date"]
-t_e= economics["data"]
+t_d = equities_d["Date"]
+t_m = equities_m["Date"]
+t_e = economics["data"]
 
 # Create folders Daily, Monthly and Economics
 os.makedirs('Daily', exist_ok=True)
@@ -36,7 +37,7 @@ log_equities_m = np.log(equities_m.iloc[:, 1:])
 log_equities_m.to_excel(os.path.join('Monthly', 'Return Logarithmic.xlsx'))
 
 # Create Lineplot
-'''def create_lineplot(data, time, folder_name):
+def create_lineplot(data, time, folder_name):
     lineplot_folder = os.path.join(folder_name, 'LinePlot')
     os.makedirs(lineplot_folder, exist_ok=True)
     
@@ -50,7 +51,7 @@ log_equities_m.to_excel(os.path.join('Monthly', 'Return Logarithmic.xlsx'))
  
 create_lineplot(log_equities_d, equities_d["Date"], 'Daily')
 create_lineplot(log_equities_m, equities_m["Date"], 'Monthly')
-create_lineplot(economics.iloc[:, 1:], economics["data"], 'Economics')'''
+create_lineplot(economics.iloc[:, 1:], economics["data"], 'Economics') 
 
 # Calculate percentage returns
 r_d = 100 * (log_equities_d - log_equities_d.shift(1))
@@ -61,7 +62,7 @@ r_e = 100 * ((economics.iloc[:, 1:] - economics.iloc[:, 1:].shift(1)) / economic
 r_e[1:].to_excel(os.path.join('Economics', 'Percentage Return.xlsx'))
 
 # Generate descriptive statistics, skewness, kurtosis and save results to Excel Files
-'''def save_return_description(data, labels, folder_name, filename):
+def save_return_description(data, labels, folder_name, filename):
     sd = os.path.join(folder_name, 'Statistics Description')
     os.makedirs(sd, exist_ok=True)
     
@@ -110,10 +111,10 @@ def hist_plot(data, labels, bins, folder_name):
 
 hist_plot(r_d, labels_equity, 50, 'Daily')
 hist_plot(r_m, labels_equity, 25, 'Monthly')
-hist_plot(r_e, labels_economics, 25, 'Economics')'''
+hist_plot(r_e, labels_economics, 25, 'Economics') 
 
 # Define a function to plot returns
-'''def plot_returns(time, returns, folder_name):
+def plot_returns(time, returns, folder_name):
     returns_folder = os.path.join(folder_name, 'LinePlot - Returns')
     os.makedirs(returns_folder, exist_ok=True)
 
@@ -130,19 +131,19 @@ hist_plot(r_e, labels_economics, 25, 'Economics')'''
 # Plot returns for equities_d, equities_m, and economics
 plot_returns(equities_d["Date"], r_d,'Daily')
 plot_returns(equities_m["Date"], r_m, 'Monthly')
-plot_returns(economics["data"], r_e, 'Economics')'''
+plot_returns(economics["data"], r_e, 'Economics')
 
 # Variables with reduced time
-r_m_short=r_m.iloc[:108].copy()
-p_m_short=log_equities_m.iloc[:108].copy()
+r_m_short = r_m.iloc[:108].copy()
+p_m_short = log_equities_m.iloc[:108].copy()
 t_m_short = t_m[:108] #removed last 2 years
 
-r_d_short=r_d.iloc[:2585].copy()
-p_d_short=log_equities_d.iloc[:2585].copy()
+r_d_short = r_d.iloc[:2585].copy()
+p_d_short = log_equities_d.iloc[:2585].copy()
 t_d_short = t_d[:2585]
 
-r_e_short=r_e.iloc[:101].copy()
-p_e_short=P_e.iloc[:101].copy()
+r_e_short = r_e.iloc[:101].copy()
+p_e_short = P_e.iloc[:101].copy()
 t_e_short = t_e[:101]
 
 # Compute BIC
@@ -234,6 +235,7 @@ def estimate_arma_model(data, df_check, lags_acf_pacf, ar, ma, folder_name, type
     os.makedirs(lb_folder, exist_ok=True)
 
     labels_check = df_check[df_check['check'] == 'Stationarity'].index.tolist()
+    all_results =[]
 
     for equity in labels_check:
         # Compute ACF and PACF
@@ -285,10 +287,129 @@ def estimate_arma_model(data, df_check, lags_acf_pacf, ar, ma, folder_name, type
 
         # Save LB in Excel File
         lb_residuals.to_excel(os.path.join(lb_folder, f'{equity}.xlsx'))
+        
+        all_results.append(results)
+    return all_results, labels_check
 
-estimate_arma_model(r_d_short[1:], adf_result_d_first, 20, 1, 1, 'Daily', 'First Difference')
-estimate_arma_model(r_m_short[1:], adf_result_m_first, 20, 1, 1, 'Monthly', 'First Difference')
-estimate_arma_model(r_e_short[1:], adf_result_e_first, 20, 1, 1, 'Economics', 'First Difference')
-estimate_arma_model(p_d_short, adf_result_d, 20, 1, 1, 'Daily', 'Log-Prices')
-estimate_arma_model(p_m_short, adf_result_m, 20, 1, 1, 'Monthly', 'Log-Prices')
-estimate_arma_model(p_e_short, adf_result_e, 20, 1, 1, 'Economics', 'Log-Prices')
+model_results_d_fd, labels_check_d_fd = estimate_arma_model(r_d_short[1:], adf_result_d_first, 20, 1, 1, 'Daily', 'First Difference')
+model_results_m_fd, labels_check_m_fd = estimate_arma_model(r_m_short[1:], adf_result_m_first, 20, 1, 1, 'Monthly', 'First Difference')
+model_results_e_fd, labels_check_e_fd = estimate_arma_model(r_e_short[1:], adf_result_e_first, 20, 1, 1, 'Economics', 'First Difference')
+model_results_d_p, labels_check_d_p = estimate_arma_model(p_d_short, adf_result_d, 20, 1, 1, 'Daily', 'Log-Prices')
+model_results_m_p, labels_check_m_p = estimate_arma_model(p_m_short, adf_result_m, 20, 1, 1, 'Monthly', 'Log-Prices')
+model_results_e_p, labels_check_e_p = estimate_arma_model(p_e_short, adf_result_e, 20, 1, 1, 'Economics', 'Log-Prices')
+
+
+# Compute Forecast rolling, with return a dictionary with all dataframe of Time, Forecast's value, Lower CI, Upper CI and True Value
+def forecast_time_series(data: pd.DataFrame, labels_check: list, forecast_periods: int, folder_name: str, type: str):
+    forecast_folder = os.path.join(folder_name, 'Forecast', type)
+    os.makedirs(forecast_folder, exist_ok=True)
+
+    # Checking if the forecast_periods is valid
+    if forecast_periods < 1:
+        raise ValueError("forecast_periods should be greater than or equal to 1.")
+
+    '''for equity in labels_check:
+        time_series = []
+        forecast_list = []
+        std_e_list = []
+        lower_ci_list = []
+        upper_ci_list = []
+        test_equity_list = []
+        # Rolling procedure for forecasting
+        for j,i in zip(range(len(model)), range(len(data[equity]) - forecast_periods + 1)):
+            # Splitting the data into training and testing sets
+            train_equity = data[equity].iloc[:i + forecast_periods]
+            test_equity = data[equity].iloc[i + forecast_periods]
+
+            forecast_series = model[j].forecast(steps=1)
+            forecast = forecast_series.values
+            time = forecast_series.index
+            residual_variance = model[j].sse/len(model[j].resid)
+            std_e = np.sqrt(residual_variance)
+            std_e_list.append(std_e)
+            lower = forecast - 1.96 * std_e
+            upper = forecast + 1.96 * std_e
+
+            test_equity_list.append(train_equity)
+            time_series.append(list(time))
+            forecast_list.append(forecast)
+            lower_ci_list.append(lower)
+            upper_ci_list.append(upper)
+
+        print(test_equity_list)
+        forecast_df = pd.DataFrame({
+            "Time": [item for sublist in time_series for item in sublist],
+            "Forecast": [item for sublist in forecast_list for item in sublist],
+            "Lower CI": [item for sublist in lower_ci_list for item in sublist],
+            "Upper CI": [item for sublist in upper_ci_list for item in sublist],
+            #"True Value": [item for sublist in test_equity_list for item in sublist]
+        })'''
+
+    for equity in labels_check:
+
+        forecast = np.zeros([forecast_periods,1])
+        mod = sm.tsa.ARIMA(data[equity][:-forecast_periods-1], order=(1,0,1), trend='n')
+        result = mod.fit()
+        forecast[0,0] = result.forecast(steps=1)
+        std_e = np.zeros([forecast_periods,1])
+        residual_variance = result.sse/np.size(result.resid)
+        std_e[0,0] = np.sqrt(residual_variance)
+        
+        periods = len(data[equity]) - forecast_periods
+
+        # We begin from 0 because periods variable is total - periods of forecast and we need to start from here
+        for ii in range(0, forecast_periods):
+            m = periods + ii
+            mod_roll = sm.tsa.ARIMA(data[equity][:m], order=(1,0,1), trend='n')
+            #print(f"m: {m}, data[equity][:m]: {data[equity][:m]}")
+            result_roll = mod_roll.fit()
+            forecast[ii,0] = result_roll.forecast(steps=1)
+            residual_variance_roll = result_roll.sse/np.size(result_roll.resid)
+            std_e[ii,0] = np.sqrt(residual_variance_roll)
+
+        t = np.arange(periods, periods+forecast_periods)
+        upper_ci = forecast + 1.96 * std_e
+        lower_ci = forecast - 1.96 * std_e
+
+        # Create dataframe for with values and save it to Excel File
+        forecast_df = pd.DataFrame({
+            "Time": t.flatten(),
+            "Forecast": forecast.flatten(),
+            "Lower CI": lower_ci.flatten(),
+            "Upper CI": upper_ci.flatten(),
+            "True Value": data[equity][periods:]
+        })
+
+        forecast_df.to_excel(os.path.join(forecast_folder, f'{equity}.xlsx'))
+
+        # Plot Forecast and save it
+        forecast_df.set_index("Time", inplace=True)
+
+        plt.plot(forecast_df.index, forecast_df["Forecast"], 'b--', label="Forecast")
+        plt.plot(forecast_df.index, forecast_df["True Value"], 'k-', label="True Value")
+        plt.plot(forecast_df.index, forecast_df["Upper CI"], 'r--', label="Upper CI")
+        plt.plot(forecast_df.index, forecast_df["Lower CI"], 'r--', label="Lower CI")
+
+        plt.legend()
+        plt.xlabel("Time")
+        plt.ylabel(type)
+        plt.title(f"{equity} Series Forecast")
+        plt.savefig(os.path.join(forecast_folder, f'{equity}.png'), dpi=300)
+        plt.close()
+
+        # Creating an empty dictionary to store them with his name
+        all_forecast_df = {}
+        all_forecast_df[equity] = forecast_df
+    return all_forecast_df
+
+# Period of forecast
+forecast_periods_daily = 125 # Exactly this, start from 06/18/2023 until 12/18/2023
+forecast_periods_monthly = 25 # not 24, because we eliminated December 2023 from the calculation
+
+# All Forecast
+forecast_result_daily = forecast_time_series(log_equities_d, labels_check_d_p, forecast_periods_daily, 'Daily', 'Log-Price')
+forecast_result_monthly = forecast_time_series(log_equities_m, labels_check_m_p, forecast_periods_monthly, 'Monthly', 'Log-Price')
+forecast_result_economics = forecast_time_series(P_e[1:], labels_check_e_p, forecast_periods_monthly, 'Economics', 'Price')
+forecast_result_daily_fd = forecast_time_series(r_d[1:], labels_check_d_fd, forecast_periods_daily, 'Daily', 'Percentage Return')
+forecast_result_monthly_fd = forecast_time_series(r_m[1:], labels_check_m_fd, forecast_periods_monthly, 'Monthly', 'Percentage Return')
+forecast_result_economics_fd = forecast_time_series(r_e[1:], labels_check_e_fd, forecast_periods_monthly, 'Economics', 'Percentage Return')
