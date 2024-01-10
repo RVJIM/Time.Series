@@ -304,53 +304,19 @@ def forecast_time_series(data: pd.DataFrame, labels_check: list, forecast_period
     forecast_folder = os.path.join(folder_name, 'Forecast', check, type)
     os.makedirs(forecast_folder, exist_ok=True)
 
+    # Create dictionary for forecast, confidence intervals and true value
+    all_forecast_df = {}
+
     # Checking if the forecast_periods is valid
     if forecast_periods < 1:
         raise ValueError("forecast_periods should be greater than or equal to 1.")
-
-    '''for equity in labels_check:
-        time_series = []
-        forecast_list = []
-        std_e_list = []
-        lower_ci_list = []
-        upper_ci_list = []
-        test_equity_list = []
-        # Rolling procedure for forecasting
-        for j,i in zip(range(len(model)), range(len(data[equity]) - forecast_periods + 1)):
-            # Splitting the data into training and testing sets
-            train_equity = data[equity].iloc[:i + forecast_periods]
-            test_equity = data[equity].iloc[i + forecast_periods]
-
-            forecast_series = model[j].forecast(steps=1)
-            forecast = forecast_series.values
-            time = forecast_series.index
-            residual_variance = model[j].sse/len(model[j].resid)
-            std_e = np.sqrt(residual_variance)
-            std_e_list.append(std_e)
-            lower = forecast - 1.96 * std_e
-            upper = forecast + 1.96 * std_e
-
-            test_equity_list.append(train_equity)
-            time_series.append(list(time))
-            forecast_list.append(forecast)
-            lower_ci_list.append(lower)
-            upper_ci_list.append(upper)
-
-        print(test_equity_list)
-        forecast_df = pd.DataFrame({
-            "Time": [item for sublist in time_series for item in sublist],
-            "Forecast": [item for sublist in forecast_list for item in sublist],
-            "Lower CI": [item for sublist in lower_ci_list for item in sublist],
-            "Upper CI": [item for sublist in upper_ci_list for item in sublist],
-            #"True Value": [item for sublist in test_equity_list for item in sublist]
-        })'''
 
     for equity in labels_check:
 
         forecast = np.zeros([forecast_periods,1])
         mod = sm.tsa.ARIMA(data[equity][:-forecast_periods-1], order=(1,0,1), trend='n')
         result = mod.fit()
-        forecast[0,0] = result.forecast(steps=1)
+        forecast[0,0] = result.forecast(steps=forecast_periods)
         std_e = np.zeros([forecast_periods,1])
         residual_variance = result.sse/np.size(result.resid)
         std_e[0,0] = np.sqrt(residual_variance)
@@ -397,8 +363,7 @@ def forecast_time_series(data: pd.DataFrame, labels_check: list, forecast_period
         plt.savefig(os.path.join(forecast_folder, f'{equity}.png'), dpi=300)
         plt.close()
 
-        # Creating an empty dictionary to store them with his name
-        all_forecast_df = {}
+        # Store DataFrame with own name
         all_forecast_df[equity] = forecast_df
     return all_forecast_df
 
@@ -420,49 +385,46 @@ forecast_result_monthly_not = forecast_time_series(log_equities_m, labels_not_m,
 forecast_result_economics_not = forecast_time_series(P_e[1:], labels_not_e, forecast_periods_monthly, 'Economics', 'Price', 'Non-Stationarity')
 
 # Compare forecast with Random Walk
-def compare_forecast_rw(data, forecast_df_not, forecast_periods, seed: int, folder_name: int, type: str, check = 'Non-Stationarity'):
+def compare_forecast_rw(data, labels_not, forecast_df_not, forecast_periods, seed: int, folder_name: int, type: str, check = 'Non-Stationarity'):
     forecast_folder = os.path.join(folder_name, 'Forecast', check, type)
     os.makedirs(forecast_folder, exist_ok=True)
 
     np.random.seed(seed)
     forecast = np.zeros([forecast_periods,1])
+    tot_periods = len(data)
+    periods = tot_periods - forecast_periods
+    rw = sm.tsa.arma_generate_sample([1], [1], nsample=tot_periods, burnin=100)
+    model = sm.tsa.ARIMA(rw[:-forecast_periods-1], order=(0,1,0))
+    result = model.fit()
+    forecast[0,0] = result.forecast(steps=1)
+    
+    for ii in range(0, forecast_periods):
+        m = periods + ii
+        mod_roll = sm.tsa.ARIMA(rw[:m], order=(0,1,0), trend='n')
+        #print(f"m: {m}, data[equity][:m]: {data[equity][:m]}")
+        result_roll = mod_roll.fit()
+        forecast[ii,0] = result_roll.forecast(steps=1)
 
-
-    for equity in forecast_df_not:
-        tot_periods = len(data[equity])
-        random_walk = np.cumsum(np.random.normal(size=tot_periods))
-        diff_random_walk = np.diff(random_walk)
-        data = pd.DataFrame({'Random Walk': random_walk, 'Differenced Random Walk': diff_random_walk})
-
-        model = sm.tsa.ARIMA(data['Random Walk'][:-forecast_periods-1], order=(0,1,0))
-        result = model.fit()
-        forecast[0,0] = result.forecast(steps=1)
-        periods = len(data[equity]) - forecast_periods
-
-        for ii in range(0, forecast_periods):
-            m = periods + ii
-            mod_roll = sm.tsa.ARIMA(random_walk[:m], order=(0,1,0), trend='n')
-            #print(f"m: {m}, data[equity][:m]: {data[equity][:m]}")
-            result_roll = mod_roll.fit()
-            forecast[ii,0] = result_roll.forecast(steps=1)
-
-        t = np.arange(periods, periods+forecast_periods)
-        forecast_rw_df = pd.DataFrame({
+    t = np.arange(periods, periods+forecast_periods)
+    
+    forecast_rw_df = pd.DataFrame({
             "Time": t.flatten(),
             "Forecast": forecast.flatten(),
-            "True Value": random_walk[periods:]
+            "True Value": rw[periods:]
         })
-
-        plt.plot(forecast_df_not[equity].index, forecast_df_not["Forecast"], 'b--', label=f"Forecast - {equity}")
-        plt.plot(forecast_rw_df.index, forecast_rw_df["Forecast"], 'k-', label="Forecast - Random Walk")
+    
+    for equity in labels_not:
+        plt.plot(forecast_df_not[equity].index, forecast_df_not[equity]['Forecast'], 'b--', label=f'Forecast - {equity}')
+        plt.plot(forecast_rw_df['Time'], forecast_rw_df['Forecast'], 'k-', label='Forecast - Random Walk')
+        plt.plot(forecast_df_not[equity].index, forecast_df_not[equity]['True Value'], 'r--' label='True Value')
 
         plt.legend()
         plt.xlabel("Time")
         plt.ylabel(type)
         plt.title(f"{equity} Series Forecast")
-        plt.savefig(os.path.join(forecast_folder, f'Comparing {equity}.png'), dpi=300)
+        plt.savefig(os.path.join(forecast_folder, f'{equity}.png'), dpi=300)
         plt.close()
 
-forecast_time_series(log_equities_d, forecast_result_daily_not, 123, forecast_periods_daily, 'Daily', 'Log-Price', 'Non-Stationarity')
-forecast_time_series(log_equities_m, forecast_result_monthly_not, 123, forecast_periods_monthly, 'Monthly', 'Log-Price', 'Non-Stationarity')
-forecast_time_series(P_e[1:], forecast_result_economics_not, 123, forecast_periods_monthly, 'Economics', 'Price', 'Non-Stationarity')
+compare_forecast_rw(log_equities_d, labels_not_d, forecast_result_daily_fd, forecast_periods_daily, 123, 'Daily', 'Comparing', 'Non-Stationarity')
+compare_forecast_rw(log_equities_m, forecast_periods_monthly, forecast_result_monthly_not, forecast_periods_monthly, 123, 'Monthly', 'Comparing', 'Non-Stationarity')
+compare_forecast_rw(P_e[1:], forecast_result_economics,  forecast_result_economics_not, forecast_periods_monthly, 123, 'Economics', 'Comparing', 'Non-Stationarity')
