@@ -37,7 +37,7 @@ log_equities_m = np.log(equities_m.iloc[:, 1:])
 log_equities_m.to_excel(os.path.join('Monthly', 'Return Logarithmic.xlsx'))
 
 # Create Lineplot
-'''def create_lineplot(data, time, folder_name):
+def create_lineplot(data, time, folder_name):
     lineplot_folder = os.path.join(folder_name, 'LinePlot')
     os.makedirs(lineplot_folder, exist_ok=True)
     
@@ -52,7 +52,7 @@ log_equities_m.to_excel(os.path.join('Monthly', 'Return Logarithmic.xlsx'))
 create_lineplot(log_equities_d, equities_d["Date"], 'Daily')
 create_lineplot(log_equities_m, equities_m["Date"], 'Monthly')
 create_lineplot(economics.iloc[:, 1:], economics["data"], 'Economics') 
-'''
+
 # Calculate percentage returns
 r_d = 100 * (log_equities_d - log_equities_d.shift(1))
 r_d[1:].to_excel(os.path.join('Daily', 'Percentage Return.xlsx'))
@@ -62,7 +62,7 @@ r_e = 100 * ((economics.iloc[:, 1:] - economics.iloc[:, 1:].shift(1)) / economic
 r_e[1:].to_excel(os.path.join('Economics', 'Percentage Return.xlsx'))
 
 # Generate descriptive statistics, skewness, kurtosis and save results to Excel Files
-'''def save_return_description(data, labels, folder_name, filename):
+def save_return_description(data, labels, folder_name, filename):
     sd = os.path.join(folder_name, 'Statistics Description')
     os.makedirs(sd, exist_ok=True)
     
@@ -75,9 +75,9 @@ r_e[1:].to_excel(os.path.join('Economics', 'Percentage Return.xlsx'))
 save_return_description(r_d, labels_equity, 'Daily', 'daily_return_description.xlsx')
 save_return_description(r_m, labels_equity, 'Monthly', 'monthly_return_description.xlsx')
 save_return_description(r_e, labels_economics, 'Economics', 'economics_return_description.xlsx')
-'''
+
 # Calculate Jarque-Bera test statistics and p-values
-'''def calculate_jarque_bera(data):
+def calculate_jarque_bera(data):
     array = []
     for equity in data.columns:
         ret = sp.stats.jarque_bera(data[equity][1:])
@@ -94,10 +94,10 @@ os.makedirs('Jarque Bera', exist_ok=True)
 # Merge and save results to Excel files
 financial_jb = pd.concat([jarque_bera_r_d, jarque_bera_r_m], axis=1, keys=['Daily', 'Monthly'])
 financial_jb.to_excel(os.path.join('Jarque Bera','Financial.xlsx'))
-jarque_bera_r_e.to_excel(os.path.join('Jarque Bera', 'Economics.xlsx'))'''
+jarque_bera_r_e.to_excel(os.path.join('Jarque Bera', 'Economics.xlsx'))
 
 # Returns Hist
-'''def hist_plot(data, labels, bins, folder_name):
+def hist_plot(data, labels, bins, folder_name):
     hist_folder = os.path.join(folder_name, 'HistPlot - Returns')
     os.makedirs(hist_folder, exist_ok=True)
 
@@ -111,10 +111,10 @@ jarque_bera_r_e.to_excel(os.path.join('Jarque Bera', 'Economics.xlsx'))'''
 
 hist_plot(r_d, labels_equity, 50, 'Daily')
 hist_plot(r_m, labels_equity, 25, 'Monthly')
-hist_plot(r_e, labels_economics, 25, 'Economics') '''
+hist_plot(r_e, labels_economics, 25, 'Economics') 
 
 # Define a function to plot returns
-'''def plot_returns(time, returns, folder_name):
+def plot_returns(time, returns, folder_name):
     returns_folder = os.path.join(folder_name, 'LinePlot - Returns')
     os.makedirs(returns_folder, exist_ok=True)
 
@@ -131,7 +131,7 @@ hist_plot(r_e, labels_economics, 25, 'Economics') '''
 # Plot returns for equities_d, equities_m, and economics
 plot_returns(equities_d["Date"], r_d,'Daily')
 plot_returns(equities_m["Date"], r_m, 'Monthly')
-plot_returns(economics["data"], r_e, 'Economics')'''
+plot_returns(economics["data"], r_e, 'Economics')
 
 # Variables with reduced time
 r_m_short = r_m.iloc[:108].copy()
@@ -145,7 +145,7 @@ t_d_short = t_d[:2585]
 r_e_short = r_e.iloc[:101].copy()
 p_e_short = P_e.iloc[:101].copy()
 t_e_short = t_e[:101]
-
+'''
 # Compute BIC
 def calculate_BIC(data, labels, maxlag, folder_name, type = 'Normal'):
     ADF_BIC_folder = os.path.join(folder_name, 'ADF - BIC')
@@ -236,7 +236,7 @@ def estimate_arma_model(data, df_check, lags_acf_pacf, ar, ma, folder_name, type
 
     labels_check = df_check[df_check['check'] == 'Stationarity'].index.tolist()
     labels_not = df_check[df_check['check'] != 'Stationarity'].index.tolist()
-    all_results =[]
+    all_results = []
 
     for equity in labels_check:
         # Compute ACF and PACF
@@ -415,8 +415,8 @@ def compare_forecast_rw(data, labels_not, forecast_df_not, forecast_periods, see
     
     for equity in labels_not:
         plt.plot(forecast_df_not[equity].index, forecast_df_not[equity]['Forecast'], 'b--', label=f'Forecast - {equity}')
-        plt.plot(forecast_rw_df['Time'], forecast_rw_df['Forecast'], 'k-', label='Forecast - Random Walk')
-        plt.plot(forecast_df_not[equity].index, forecast_df_not[equity]['True Value'], 'r--', label='True Value')
+        plt.plot(forecast_rw_df['Time'], forecast_rw_df['Forecast'], 'r--', label='Forecast - Random Walk')
+        plt.plot(forecast_df_not[equity].index, forecast_df_not[equity]['True Value'], 'k-', label='True Value')
 
         plt.legend()
         plt.xlabel("Time")
@@ -425,6 +425,24 @@ def compare_forecast_rw(data, labels_not, forecast_df_not, forecast_periods, see
         plt.savefig(os.path.join(forecast_folder, f'{equity}.png'), dpi=300)
         plt.close()
 
-compare_forecast_rw(log_equities_d, labels_not_d, forecast_result_daily_fd, forecast_periods_daily, 123, 'Daily', 'Comparing', 'Non-Stationarity')
-compare_forecast_rw(log_equities_m, forecast_periods_monthly, forecast_result_monthly_not, forecast_periods_monthly, 123, 'Monthly', 'Comparing', 'Non-Stationarity')
-compare_forecast_rw(P_e[1:], forecast_result_economics,  forecast_result_economics_not, forecast_periods_monthly, 123, 'Economics', 'Comparing', 'Non-Stationarity')
+compare_forecast_rw(log_equities_d, labels_not_d, forecast_result_daily_fd, forecast_periods_daily, 123, 'Daily', 'Comparing', 'Log-Price')
+compare_forecast_rw(log_equities_m, labels_not_m, forecast_result_monthly_not, forecast_periods_monthly, 123, 'Monthly', 'Comparing', 'Log-Price')
+compare_forecast_rw(P_e[1:], labels_not_e,  forecast_result_economics_not, forecast_periods_monthly, 123, 'Economics', 'Comparing', 'Log-Price')
+'''
+# Square log returns, estimate arma and make forecast
+log_equities_d_square = log_equities_d ** 2
+r_d_square = 100 * (log_equities_d_square - log_equities_d_square.shift(1))
+print(r_d)
+print(r_d_square)
+r_d_square[1:].to_excel(os.path.join('Daily', 'Percentage Return - Square.xlsx'))
+r_d_short_square = r_d_square.iloc[:2585].copy()
+p_d_short_square = log_equities_d_square.iloc[:2585].copy()
+BIC_d_df_square = calculate_BIC(p_d_short_square, labels_equity, 22, 'Daily')
+adf_result_d_square, p_d_unit_root_square = perform_adf_test(p_d_short_square, BIC_d_df_square, labels_equity, 0.05, 22, 'Daily')
+p_d_unit_root_BIC_df_square = calculate_BIC(r_d_short_square[1:], p_d_unit_root_square, maxlag=22, folder_name='Daily', type='First Difference')
+adf_result_d_first_square, _ = perform_adf_test(r_d_short_square[1:], p_d_unit_root_BIC_df_square, p_d_unit_root_square, 0.05, 22, 'Daily', type='First Difference')
+model_results_d_p_square, labels_check_d_p_square, labels_not_d_square = estimate_arma_model(p_d_short_square, adf_result_d_square, 20, 1, 1, 'Daily', 'Square Log-Prices')
+model_results_d_fd_square, labels_check_d_fd_square, labels_not_d_fd_square= estimate_arma_model(r_d_short_square[1:], adf_result_d_first_square, 20, 1, 1, 'Daily', 'Square First Difference')
+forecast_result_daily_square = forecast_time_series(log_equities_d_square, labels_check_d_p_square, forecast_periods_daily, 'Daily', 'Square Log-Price')
+forecast_result_daily_fd_square = forecast_time_series(r_d_square[1:], labels_check_d_fd_square, forecast_periods_daily, 'Daily', 'Square Percentage Return')
+forecast_result_daily_not_square = forecast_time_series(log_equities_d_square, labels_not_d_square, forecast_periods_daily, 'Daily', 'Square Log-Price', 'Non-Stationarity')
