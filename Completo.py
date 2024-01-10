@@ -316,7 +316,7 @@ def forecast_time_series(data: pd.DataFrame, labels_check: list, forecast_period
         forecast = np.zeros([forecast_periods,1])
         mod = sm.tsa.ARIMA(data[equity][:-forecast_periods-1], order=(1,0,1), trend='n')
         result = mod.fit()
-        forecast[0,0] = result.forecast(steps=forecast_periods)
+        forecast[0,0] = result.forecast(steps=1)
         std_e = np.zeros([forecast_periods,1])
         residual_variance = result.sse/np.size(result.resid)
         std_e[0,0] = np.sqrt(residual_variance)
@@ -416,7 +416,7 @@ def compare_forecast_rw(data, labels_not, forecast_df_not, forecast_periods, see
     for equity in labels_not:
         plt.plot(forecast_df_not[equity].index, forecast_df_not[equity]['Forecast'], 'b--', label=f'Forecast - {equity}')
         plt.plot(forecast_rw_df['Time'], forecast_rw_df['Forecast'], 'k-', label='Forecast - Random Walk')
-        plt.plot(forecast_df_not[equity].index, forecast_df_not[equity]['True Value'], 'r--' label='True Value')
+        plt.plot(forecast_df_not[equity].index, forecast_df_not[equity]['True Value'], 'r--', label='True Value')
 
         plt.legend()
         plt.xlabel("Time")
