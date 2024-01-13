@@ -206,10 +206,10 @@ def estimate_arma_model_new(data, labels_check, lags_acf_pacf, folder_name, type
         pacf_residuals = sm.tsa.pacf(residuals, nlags=lags_acf_pacf)
         acf_residuals = sm.tsa.acf(residuals, nlags=lags_acf_pacf)
 
-        # Create table of ACF and PACF of residuals and save it in Excel File
+        # Create table of ACF and PACF of residuals
         acf_pacf_residuals = pd.DataFrame({'ACF': acf_residuals, 'PACF': pacf_residuals})
         
-        # Take Standard Error and t-statistics and save it in Excel File
+        # Take Standard Error and t-statistics
         std_e = results.bse
         t_stat = results.tvalues
         parameters = pd.concat([std_e, t_stat], axis=1, keys=['Standard Error', 't-statistics'])
@@ -326,11 +326,6 @@ def compare_forecast_rw(labels_not, forecast_df_not, forecast_periods, seed: int
     os.makedirs(forecast_folder, exist_ok=True)
     
     for equity in labels_not:
-        '''for i in range(forecast_periods):
-            plt.plot(RW(forecast_periods)[0],RW(forecast_periods)[1],"b",label= "Random Walk")
-            plt.plot(t, x_diff[1:31], 'k-', label='Actual Data')
-            plt.plot(t, for2, 'r--', label='Dynamic Forecast')'''
-
         plt.plot(forecast_df_not[equity].index, forecast_df_not[equity]['Forecast'], 'r--', label=f'Forecast - {equity}')
         plt.plot(forecast_df_not[equity].index, RW(forecast_periods,seed)[1], 'b', label= "Random Walk")
         plt.plot(forecast_df_not[equity].index, forecast_df_not[equity]['True Value'], 'k-', label='True Value')
