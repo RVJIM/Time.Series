@@ -129,20 +129,22 @@ def perform_adf_test(p_short, BIC_df, labels_equity, conf, freq, folder_name, ty
     
     return adf_result_df, p_unit_root
 
+def stationarity_not(df_check):
+    labels_check = df_check[df_check['check'] == 'Stationarity'].index.tolist()
+    labels_not = df_check[df_check['check'] != 'Stationarity'].index.tolist()
+    return labels_check, labels_not
 
 # ARMA Model, ACF, PACF, Ljung Box
-def estimate_arma_model_new(data, df_check, lags_acf_pacf, folder_name, type='Log-Returns'):
+def estimate_arma_model_new(data, labels_check, lags_acf_pacf, folder_name, type, check = 'Stationaritiy'):
     import itertools
-    acf_pacf_folder = os.path.join(folder_name, 'ACF - PACF', type)
+    acf_pacf_folder = os.path.join(folder_name, 'ACF - PACF',check, type)
     os.makedirs(acf_pacf_folder, exist_ok=True)
 
     lb_folder = os.path.join(folder_name, 'Ljung_Box', type)
     os.makedirs(lb_folder, exist_ok=True)
 
-    labels_check = df_check[df_check['check'] == 'Stationarity'].index.tolist()
-    labels_not = df_check[df_check['check'] != 'Stationarity'].index.tolist()
     order_label = ['AR', 'd', 'MA']
-    arma_order_d = pd.DataFrame(index=order_label)
+    arma_order_d = {}
     all_results = []
 
     for equity in labels_check:
@@ -169,7 +171,6 @@ def estimate_arma_model_new(data, df_check, lags_acf_pacf, folder_name, type='Lo
 
         # Create a list of all possible combinations of p, d, and q
         param_combinations = list(itertools.product(p_values, d_values , q_values))
-        param_combinations.remove((0,0,0))
 
         best_bic = float('inf')
         best_order = ()
@@ -207,8 +208,16 @@ def estimate_arma_model_new(data, df_check, lags_acf_pacf, folder_name, type='Lo
 
         # Create table of ACF and PACF of residuals and save it in Excel File
         acf_pacf_residuals = pd.DataFrame({'ACF': acf_residuals, 'PACF': pacf_residuals})
-        acf_pacf_residuals.to_excel(os.path.join(acf_pacf_folder, f'{equity} residuals - values.xlsx'))
         
+        # Take Standard Error and t-statistics and save it in Excel File
+        std_e = results.bse
+        t_stat = results.tvalues
+        parameters = pd.concat([std_e, t_stat], axis=1, keys=['Standard Error', 't-statistics'])
+
+        # Store ARMA model results
+        arma_order_d[equity] = best_order
+        arma_order = pd.DataFrame(arma_order_d, index=order_label).T
+
         # Plot ACF and PACF residuals
         fig, (ax3, ax4) = plt.subplots(2, 1)
         plot_acf(residuals, lags=lags_acf_pacf, ax=ax3)
@@ -217,24 +226,16 @@ def estimate_arma_model_new(data, df_check, lags_acf_pacf, folder_name, type='Lo
         plt.savefig(os.path.join(acf_pacf_folder, f'{equity}_residuals.png'))
         plt.close()
 
-        # Take Standard Error and t-statistics and save it in Excel File
-        std_e = results.bse
-        t_stat = results.tvalues
-        parameters = pd.concat([std_e, t_stat], axis=1, keys=['Standard Error', 't-statistics'])
-        parameters.to_excel(os.path.join(acf_pacf_folder, f'{equity}_parameters.xlsx'))
-
-        # Store ARMA model results
-        arma_order_d[equity] = best_order
-
         # Save LB in Excel File
+        parameters.to_excel(os.path.join(acf_pacf_folder, f'{equity}_parameters.xlsx'))
+        acf_pacf_residuals.to_excel(os.path.join(acf_pacf_folder, f'{equity} residuals - values.xlsx'))
         lb_residuals.to_excel(os.path.join(lb_folder, f'{equity}.xlsx'))
-    
-    arma_order = arma_order_d.T
-    arma_order.to_excel(os.path.join(acf_pacf_folder, 'Best order ARMA.xlsx'), index=True)
-    return all_results, labels_check, labels_not
+        arma_order.to_excel(os.path.join(acf_pacf_folder, 'Best order ARMA.xlsx'), index=True)
+
+    return all_results, arma_order_d
 
 
-def forecast_time_series(data: pd.DataFrame, labels_check, df_forecast, forecast_periods: int, ar, d, ma, folder_name: str, type: str, check = 'Stationaritiy'):
+def forecast_time_series(data: pd.DataFrame, labels_check, forecast_periods: int, order, folder_name: str, type: str, check = 'Stationaritiy'):
     forecast_folder = os.path.join(folder_name, 'Forecast', check, type)
     os.makedirs(forecast_folder, exist_ok=True)
 
@@ -242,97 +243,101 @@ def forecast_time_series(data: pd.DataFrame, labels_check, df_forecast, forecast
     if forecast_periods < 1:
         raise ValueError("forecast_periods should be greater than or equal to 1.")
 
-    forecast = np.zeros([forecast_periods,1])
-    mod = sm.tsa.ARIMA(data[labels_check][:-forecast_periods-1], order=(1,0,1), trend='n')
-    result = mod.fit()
-    forecast[0,0] = result.forecast(steps=1)
-    std_e = np.zeros([forecast_periods,1])
-    residual_variance = result.sse/np.size(result.resid)
-    std_e[0,0] = np.sqrt(residual_variance)
+    df_forecasts = {}
+
+    for equity in labels_check:
+        forecast = np.zeros([forecast_periods,1])
+        mod = sm.tsa.ARIMA(data[equity][:-forecast_periods-1], order=order[equity], trend='n')
+        result = mod.fit()
+        forecast[0,0] = result.forecast(steps=1)
+        std_e = np.zeros([forecast_periods,1])
+        residual_variance = result.sse/np.size(result.resid)
+        std_e[0,0] = np.sqrt(residual_variance)
         
-    periods = len(data) - forecast_periods
+        periods = len(data) - forecast_periods
 
-    order = [ar, d, ma]
     # We begin from 0 because periods variable is total - periods of forecast and we need to start from here
-    for ii in range(0, forecast_periods):
-        m = periods + ii
-        mod_roll = sm.tsa.ARIMA(data[labels_check][:m], order=order, trend='n')
-        result_roll = mod_roll.fit()
-        forecast[ii,0] = result_roll.forecast(steps=1)
-        residual_variance_roll = result_roll.sse/np.size(result_roll.resid)
-        std_e[ii,0] = np.sqrt(residual_variance_roll)
+        for ii in range(0, forecast_periods):
+            m = periods + ii
+            mod_roll = sm.tsa.ARIMA(data[equity][:m], order=order[equity], trend='n')
+            result_roll = mod_roll.fit()
+            forecast[ii,0] = result_roll.forecast(steps=1)
+            residual_variance_roll = result_roll.sse/np.size(result_roll.resid)
+            std_e[ii,0] = np.sqrt(residual_variance_roll)
 
-    t = np.arange(periods, periods+forecast_periods)
-    upper_ci = forecast + 1.96 * std_e
-    lower_ci = forecast - 1.96 * std_e
+        t = np.arange(periods, periods+forecast_periods)
+        upper_ci = forecast + 1.96 * std_e
+        lower_ci = forecast - 1.96 * std_e
 
     # Create dataframe for with values and save it to Excel File
-    forecast_df = pd.DataFrame({
-            "Time": t.flatten(),
-            "Forecast": forecast.flatten(),
-            "Lower CI": lower_ci.flatten(),
-            "Upper CI": upper_ci.flatten(),
-            "True Value": data[periods:]
-        })
+        forecast_df = pd.DataFrame({
+                "Time": t.flatten(),
+                "Forecast": forecast.flatten(),
+                "Lower CI": lower_ci.flatten(),
+                "Upper CI": upper_ci.flatten(),
+                "True Value": data[equity][periods:]
+            })
 
-    forecast_df.to_excel(os.path.join(forecast_folder, f'{data.columns}.xlsx'))
+        forecast_df.to_excel(os.path.join(forecast_folder, f'{equity}.xlsx'))
 
-    # Plot Forecast and save it
-    forecast_df.set_index("Time", inplace=True)
+        # Plot Forecast and save it
+        forecast_df.set_index("Time", inplace=True)
     
-    plt.plot(forecast_df.index, forecast_df["Forecast"], 'b--', label="Forecast")
-    plt.plot(forecast_df.index, forecast_df["True Value"], 'k-', label="True Value")
-    plt.plot(forecast_df.index, forecast_df["Upper CI"], 'r--', label="Upper CI")
-    plt.plot(forecast_df.index, forecast_df["Lower CI"], 'r--', label="Lower CI")
-
-    plt.legend()
-    plt.xlabel("Time")
-    plt.ylabel(type)
-    plt.title(f"{data.columns} Series Forecast")
-    plt.savefig(os.path.join(forecast_folder, f'{data.columns}.png'), dpi=300)
-    plt.close()
-
-    # Store DataFrame with own name
-    df_forecast[data.columns] = forecast_df
-    return df_forecast
-
-# Compare forecast with Random Walk
-def compare_forecast_rw(data, labels_not, forecast_df_not, forecast_periods, seed: int, folder_name: int, type: str, check = 'Non-Stationarity'):
-    forecast_folder = os.path.join(folder_name, 'Forecast', check, type)
-    os.makedirs(forecast_folder, exist_ok=True)
-
-    np.random.seed(seed)
-    forecast = np.zeros([forecast_periods,1])
-    tot_periods = len(data)
-    periods = tot_periods - forecast_periods
-    rw = sm.tsa.arma_generate_sample([1], [1], nsample=tot_periods, burnin=100)
-    model = sm.tsa.ARIMA(rw[:-forecast_periods-1], order=(0,1,0))
-    result = model.fit()
-    forecast[0,0] = result.forecast(steps=1)
-    
-    for ii in range(0, forecast_periods):
-        m = periods + ii
-        mod_roll = sm.tsa.ARIMA(rw[:m], order=(0,1,0), trend='n')
-        #print(f"m: {m}, data[equity][:m]: {data[equity][:m]}")
-        result_roll = mod_roll.fit()
-        forecast[ii,0] = result_roll.forecast(steps=1)
-
-    t = np.arange(periods, periods+forecast_periods)
-    
-    forecast_rw_df = pd.DataFrame({
-            "Time": t.flatten(),
-            "Forecast": forecast.flatten(),
-            "True Value": rw[periods:]
-        })
-    
-    for equity in labels_not:
-        plt.plot(forecast_df_not[equity].index, forecast_df_not[equity]['Forecast'], 'b--', label=f'Forecast - {equity}')
-        plt.plot(forecast_rw_df['Time'], forecast_rw_df['Forecast'], 'r--', label='Forecast - Random Walk')
-        plt.plot(forecast_df_not[equity].index, forecast_df_not[equity]['True Value'], 'k-', label='True Value')
+        plt.plot(forecast_df.index, forecast_df["Forecast"], 'b--', label="Forecast")
+        plt.plot(forecast_df.index, forecast_df["True Value"], 'k-', label="True Value")
+        plt.plot(forecast_df.index, forecast_df["Upper CI"], 'r--', label="Upper CI")
+        plt.plot(forecast_df.index, forecast_df["Lower CI"], 'r--', label="Lower CI")
 
         plt.legend()
         plt.xlabel("Time")
         plt.ylabel(type)
         plt.title(f"{equity} Series Forecast")
+        plt.savefig(os.path.join(forecast_folder, f'{equity}.png'), dpi=300)
+        plt.close()
+
+        # Store DataFrame with own name
+        df_forecasts[equity] = forecast_df
+    return df_forecasts
+
+def RW(n, seed):
+    x = 0
+    y = 0  
+    position_x = [0] #Start from the origin
+    position_y = [0]
+    np.random.seed(seed)
+    for i in range (1,n):
+        step = np.random.uniform(0,1) #Choose steps randombly 0 or 1
+        if step > 0.5:
+            x += 1
+            y += 1
+            position_x.append(x)
+            position_y.append(y)
+        elif step < 0.5:
+            x += 1
+            y -= 1
+            position_x.append(x)
+            position_y.append(y)
+    return [position_x,position_y]
+
+
+# Compare forecast with Random Walk
+def compare_forecast_rw(labels_not, forecast_df_not, forecast_periods, seed: int, folder_name: int, type: str, check = 'Non-Stationarity'):
+    forecast_folder = os.path.join(folder_name, 'Forecast', check, type)
+    os.makedirs(forecast_folder, exist_ok=True)
+    
+    for equity in labels_not:
+        '''for i in range(forecast_periods):
+            plt.plot(RW(forecast_periods)[0],RW(forecast_periods)[1],"b",label= "Random Walk")
+            plt.plot(t, x_diff[1:31], 'k-', label='Actual Data')
+            plt.plot(t, for2, 'r--', label='Dynamic Forecast')'''
+
+        plt.plot(forecast_df_not[equity].index, forecast_df_not[equity]['Forecast'], 'r--', label=f'Forecast - {equity}')
+        plt.plot(forecast_df_not[equity].index, RW(forecast_periods,seed)[1], 'b', label= "Random Walk")
+        plt.plot(forecast_df_not[equity].index, forecast_df_not[equity]['True Value'], 'k-', label='True Value')
+
+        plt.legend()
+        plt.xlabel('Time')
+        plt.ylabel('Return')
+        plt.title(f"{equity}")
         plt.savefig(os.path.join(forecast_folder, f'{equity}.png'), dpi=300)
         plt.close()
