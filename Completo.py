@@ -170,8 +170,8 @@ labels_check_d_fd_square, labels_not_d_fd_square = fun.stationarity_not(adf_resu
 
 # model_results_d_r_square, best_order_r_square = fun.estimate_arma_model_new(p_d_short_square, labels_check_d_p_square, 20, 'Daily', 'Square Log-Prices')
 model_results_d_fd_square, best_order_d_fd_square = fun.estimate_arma_model_new(r_d_short_square[1:], labels_check_d_fd_square, 20, 'Daily', 'Square First Difference')
-model_results_d_not_square, best_order_d_not_square = fun.estimate_arma_model_new(p_d_short_square, labels_not_d_square, 20, 'Daily', 'Log-Prices', 'Non-Stationarity')
+#model_results_d_not_square, best_order_d_not_square = fun.estimate_arma_model_new(p_d_short_square, labels_not_d_square, 20, 'Daily', 'Log-Prices', 'Non-Stationarity')
 forecast_periods_daily = 125
 # forecast_result_daily_square = fun.forecast_time_series(log_equities_d_square, labels_check_d_p_square, forecast_periods_daily, best_order_d_square, 'Daily', 'Square Log-Price')
 forecast_result_daily_fd_square = fun.forecast_time_series(r_d_square[1:], labels_check_d_fd_square, forecast_periods_daily, best_order_d_fd_square, 'Daily', 'Square Percentage Return')
-forecast_result_daily_not_square = fun.forecast_time_series(log_equities_d_square, labels_not_d_square, forecast_periods_daily, best_order_d_not_square, 'Daily', 'Square Log-Price', 'Non-Stationarity') 
+#forecast_result_daily_not_square = fun.forecast_time_series(log_equities_d_square, labels_not_d_square, forecast_periods_daily, best_order_d_not_square, 'Daily', 'Square Log-Price', 'Non-Stationarity') 
