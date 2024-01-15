@@ -37,7 +37,7 @@ log_equities_m = np.log(equities_m.iloc[:, 1:])
 log_equities_m.to_excel(os.path.join('Monthly', 'Return Logarithmic.xlsx'))
 
 # Create Lineplot 
-'''fun.create_lineplot(log_equities_d, equities_d["Date"], 'Daily')
+fun.create_lineplot(log_equities_d, equities_d["Date"], 'Daily')
 fun.create_lineplot(log_equities_m, equities_m["Date"], 'Monthly')
 fun.create_lineplot(economics.iloc[:, 1:], economics["data"], 'Economics') 
 
@@ -151,27 +151,18 @@ forecast_result_economics_not = fun.forecast_time_series(r_e[1:], labels_not_e, 
 fun.compare_forecast_rw(labels_not_d, forecast_result_daily_not, forecast_periods_daily, 123, 'Daily', 'Comparing', 'Log-Prices')
 fun.compare_forecast_rw(labels_not_m, forecast_result_monthly_not, forecast_periods_monthly, 123, 'Monthly', 'Comparing', 'Log-Prices')
 fun.compare_forecast_rw(labels_not_e, forecast_result_economics_not, forecast_periods_monthly, 123, 'Economics', 'Comparing', 'Log-Prices')
-'''
+
 # Square log returns, estimate arma and make forecast
-# log_equities_d_square = log_equities_d ** 2
 r_d_square = r_d ** 2
-# r_d_square = 100 * (log_equities_d_square - log_equities_d_square.shift(1))
 r_d_square[1:].to_excel(os.path.join('Daily', 'Percentage Return - Square.xlsx'))
 r_d_short_square = r_d_square.iloc[:2585].copy()
-# p_d_short_square = log_equities_d_square.iloc[:2585].copy()
 
 BIC_d_df_square = fun.calculate_BIC(r_d_short_square[1:], labels_equity, 22, 'Daily')
 adf_result_d_square, r_d_unit_root_square = fun.perform_adf_test(r_d_short_square[1:], BIC_d_df_square, labels_equity, 0.05, 22, 'Daily')
-# p_d_unit_root_BIC_df_square = fun.calculate_BIC(r_d_short_square[1:], p_d_unit_root_square, maxlag=22, folder_name='Daily', type='First Difference')
-# adf_result_d_first_square, _ = fun.perform_adf_test(r_d_short_square[1:], p_d_unit_root_BIC_df_square, p_d_unit_root_square, 0.05, 22, 'Daily', type='First Difference')
 
-# labels_check_d_p_square, labels_not_d_square = fun.stationarity_not(adf_result_d_square)
 labels_check_d_fd_square, labels_not_d_fd_square = fun.stationarity_not(adf_result_d_square)
 
-# model_results_d_r_square, best_order_r_square = fun.estimate_arma_model_new(p_d_short_square, labels_check_d_p_square, 20, 'Daily', 'Square Log-Prices')
 model_results_d_fd_square, best_order_d_fd_square = fun.estimate_arma_model_new(r_d_short_square[1:], labels_check_d_fd_square, 20, 'Daily', 'Square First Difference')
-#model_results_d_not_square, best_order_d_not_square = fun.estimate_arma_model_new(p_d_short_square, labels_not_d_square, 20, 'Daily', 'Log-Prices', 'Non-Stationarity')
 forecast_periods_daily = 125
-# forecast_result_daily_square = fun.forecast_time_series(log_equities_d_square, labels_check_d_p_square, forecast_periods_daily, best_order_d_square, 'Daily', 'Square Log-Price')
+
 forecast_result_daily_fd_square = fun.forecast_time_series(r_d_square[1:], labels_check_d_fd_square, forecast_periods_daily, best_order_d_fd_square, 'Daily', 'Square Percentage Return')
-#forecast_result_daily_not_square = fun.forecast_time_series(log_equities_d_square, labels_not_d_square, forecast_periods_daily, best_order_d_not_square, 'Daily', 'Square Log-Price', 'Non-Stationarity') 
